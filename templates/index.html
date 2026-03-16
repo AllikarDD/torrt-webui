@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torrent Manager</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🎬 Torrent Manager</h1>
+        <div class="status-bar">
+                <span id="qb-status" class="status offline">
+                    ⚡ qBittorrent: Проверка...
+                </span>
+            <button id="check-all-btn" class="btn btn-primary">
+                🔄 Проверить все
+            </button>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <!-- Форма добавления -->
+        <div class="card add-form">
+            <h2>➕ Добавить топик</h2>
+            <form id="add-topic-form">
+                <div class="form-group">
+                    <label for="topic_id">ID темы (RuTracker):</label>
+                    <input type="number" id="topic_id" name="topic_id" required
+                           placeholder="1234567">
+                </div>
+
+                <div class="form-group">
+                    <label for="save_path">Путь сохранения:</label>
+                    <input type="text" id="save_path" name="save_path" required
+                           placeholder="/downloads/anime/">
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Категория (опционально):</label>
+                    <input type="text" id="category" name="category"
+                           placeholder="anime">
+                </div>
+
+                <button type="submit" class="btn btn-success">
+                    ✅ Добавить
+                </button>
+            </form>
+        </div>
+
+        <!-- Список топиков -->
+        <div class="card topics-list">
+            <h2>📋 Отслеживаемые топики</h2>
+            <div id="topics-container">
+                <!-- Топики будут загружены через JS -->
+                <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+
+        <!-- История -->
+        <div class="card history">
+            <h2>📜 История</h2>
+            <div id="history-container">
+                <!-- История будет загружена через JS -->
+                <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для деталей -->
+<div id="topic-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modal-content"></div>
+    </div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
