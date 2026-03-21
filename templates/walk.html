@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Walk Updates{% endblock %}
+
+{% block content %}
+<h2>Walk Through Torrents</h2>
+<a href="/" class="btn btn-secondary mb-3">Back to Home</a>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Execute Walk Command</h5>
+    </div>
+    <div class="card-body">
+        <p>This will walk through all registered torrents and perform automatic updates.</p>
+        <form method="POST">
+            <button type="submit" class="btn btn-primary">Start Walk</button>
+        </form>
+    </div>
+</div>
+
+{% if result %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Walk Results</h5>
+    </div>
+    <div class="card-body">
+        {% if result.success %}
+        <div class="alert alert-success">
+            <h6>Command executed successfully:</h6>
+            <pre class="mb-0">{{ result.output }}</pre>
+        </div>
+        {% else %}
+        <div class="alert alert-danger">
+            <h6>Error executing command:</h6>
+            <pre class="mb-0">{{ result.error }}</pre>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

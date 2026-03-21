@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Notifiers{% endblock %}
+
+{% block content %}
+<h2>Notifiers</h2>
+<a href="/" class="btn btn-secondary mb-3">Back to Home</a>
+
+{% if result.success %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Configured Notifiers</h5>
+    </div>
+    <div class="card-body">
+        {% if notifiers %}
+        <ul class="list-group">
+            {% for notifier in notifiers %}
+            <li class="list-group-item">{{ notifier }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No notifiers configured.</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-danger">
+    <h5>Error executing command:</h5>
+    <pre>{{ result.error }}</pre>
+</div>
+{% endif %}
+{% endblock %}

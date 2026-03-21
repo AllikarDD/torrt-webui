@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Torrents{% endblock %}
+
+{% block content %}
+<h2>Registered Torrents</h2>
+<a href="/" class="btn btn-secondary mb-3">Back to Home</a>
+
+{% if result.success %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Torrents List</h5>
+    </div>
+    <div class="card-body">
+        {% if torrents %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th>Hash</th>
+                    <th>Name</th>
+                    <th>Tracker</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for torrent in torrents %}
+                <tr>
+                    <td><code>{{ torrent.hash }}</code></td>
+                    <td>{{ torrent.name }}</td>
+                    <td>{{ torrent.tracker }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No torrents registered.</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-danger">
+    <h5>Error executing command:</h5>
+    <pre>{{ result.error }}</pre>
+</div>
+{% endif %}
+{% endblock %}

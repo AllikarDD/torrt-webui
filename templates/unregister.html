@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Unregister Torrent{% endblock %}
+
+{% block content %}
+<h2>Unregister Torrent</h2>
+<a href="/" class="btn btn-secondary mb-3">Back to Home</a>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Unregister Torrent from torrt</h5>
+    </div>
+    <div class="card-body">
+        <p>This will only unregister the torrent from torrt, but keep it in your torrent client.</p>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.torrent_hash.label(class="form-label") }}
+                {{ form.torrent_hash(class="form-control", placeholder="Enter torrent hash (e.g., a1b2c3d4e5f6...)") }}
+                <div class="form-text">This will remove the torrent from torrt's tracking list only</div>
+                {% if form.torrent_hash.errors %}
+                <div class="alert alert-danger mt-1">
+                    {% for error in form.torrent_hash.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {{ form.submit(class="btn btn-warning") }}
+        </form>
+    </div>
+</div>
+{% endblock %}
