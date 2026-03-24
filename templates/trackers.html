@@ -3,30 +3,123 @@
 {% block title %}Trackers{% endblock %}
 
 {% block content %}
-<h2>Trackers</h2>
+<h2>Trackers Management</h2>
 <a href="/" class="btn btn-secondary mb-3">Back to Home</a>
 
-{% if result.success %}
-<div class="card">
+<!-- Flash messages for tracker operations -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- Display existing trackers -->
+<div class="card mb-4">
     <div class="card-header">
-        <h5 class="mb-0">Available Trackers</h5>
+        <h5 class="mb-0">📡 Available Trackers</h5>
     </div>
     <div class="card-body">
         {% if trackers %}
-        <ul class="list-group">
-            {% for tracker in trackers %}
-            <li class="list-group-item">{{ tracker }}</li>
-            {% endfor %}
-        </ul>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th>Tracker Alias</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for tracker in trackers %}
+                <tr>
+                    <td><strong>{{ tracker.alias[5:] }}</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="showEditForm('{{ tracker.alias }}')">
+                            Configure
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-        <p>No trackers found.</p>
+        <p class="text-muted">No trackers found. Trackers are defined in torrt configuration.</p>
         {% endif %}
     </div>
 </div>
-{% else %}
-<div class="alert alert-danger">
-    <h5>Error executing command:</h5>
-    <pre>{{ result.error }}</pre>
+
+<!-- Configure tracker form (hidden, shown when Configure clicked) -->
+<div id="editForm" class="card mb-4" style="display: none;">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">⚙️ Configure Tracker</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('configure_tracker') }}" id="configureForm">
+            <input type="hidden" name="tracker_alias" id="edit_alias">
+
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" id="edit_username" class="form-control"
+                       placeholder="Tracker username/login">
+                <div class="form-text">Username for tracker authentication (if required)</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" id="edit_password" class="form-control"
+                       placeholder="Tracker password">
+                <div class="form-text">Password for tracker authentication (if required)</div>
+            </div>
+
+            <button type="submit" class="btn btn-info">Save Configuration</button>
+            <button type="button" class="btn btn-secondary" onclick="hideEditForm()">Cancel</button>
+        </form>
+    </div>
 </div>
-{% endif %}
+
+<!-- Quick info about trackers -->
+<div class="card">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">ℹ️ About Trackers</h5>
+    </div>
+    <div class="card-body">
+        <p>torrt supports the following trackers:</p>
+        <ul>
+            <li><strong>AniDUB</strong> - http://tr.anidub.com/</li>
+            <li><strong>CasStudio</strong> - https://casstudio.tv</li>
+            <li><strong>EniaHD</strong> - https://eniahd.com</li>
+            <li><strong>Kinozal</strong> - http://kinozal.tv/</li>
+            <li><strong>NNM-Club</strong> - http://nnm-club.me/</li>
+            <li><strong>RUTOR</strong> - http://rutor.org/</li>
+            <li><strong>RuTracker</strong> - http://rutracker.org/</li>
+            <li><strong>YTS.MX</strong> - https://yts.mx/</li>
+        </ul>
+        <p class="text-muted mb-0">
+            <small>Note: Trackers need to be configured with your credentials to work properly.
+                The tracker alias is usually the domain name (e.g., rutracker.org, nnm-club.me).</small>
+        </p>
+    </div>
+</div>
+
+<script>
+<script>
+    function showEditForm(alias) {
+        document.getElementById('edit_alias').value = alias;
+        document.getElementById('editForm').style.display = 'block';
+        // Clear previous values
+        document.getElementById('edit_username').value = '';
+        document.getElementById('edit_password').value = '';
+        // Scroll to form
+        document.getElementById('editForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideEditForm() {
+        document.getElementById('editForm').style.display = 'none';
+    }
+</script>
 {% endblock %}

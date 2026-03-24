@@ -28,38 +28,32 @@
             </div>
 
             <div class="mb-3">
-                {{ form.rpc_alias.label(class="form-label") }}
-                {{ form.rpc_alias(class="form-select") }}
-                <div class="form-text">Select the torrent client to use</div>
-                {% if form.rpc_alias.errors %}
-                <div class="alert alert-danger mt-1">
-                    {% for error in form.rpc_alias.errors %}
-                    {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="mb-3">
-                {{ form.tracker_alias.label(class="form-label") }}
-                {{ form.tracker_alias(class="form-select") }}
-                <div class="form-text">Select the tracker for this torrent</div>
-                {% if form.tracker_alias.errors %}
-                <div class="alert alert-danger mt-1">
-                    {% for error in form.tracker_alias.errors %}
-                    {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="mb-3">
                 {{ form.download_path.label(class="form-label") }}
                 {{ form.download_path(class="form-control", placeholder="/path/to/downloads (optional)") }}
                 <div class="form-text">Destination path to download torrent contents (leave empty for default client path)</div>
                 {% if form.download_path.errors %}
                 <div class="alert alert-danger mt-1">
                     {% for error in form.download_path.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.content_layout.label(class="form-label") }}
+                {{ form.content_layout(class="form-select") }}
+                <div class="form-text">
+                    <strong>For qBittorrent:</strong> Controls folder structure for downloaded content
+                    <ul class="mt-2 mb-0">
+                        <li><strong>No Subfolder</strong> - Saves files directly to download path</li>
+                        <li><strong>Create Subfolder</strong> - Creates folder with torrent name</li>
+                        <li><strong>Original</strong> - Uses structure defined in torrent file</li>
+                    </ul>
+                </div>
+                {% if form.content_layout.errors %}
+                <div class="alert alert-danger mt-1">
+                    {% for error in form.content_layout.errors %}
                     {{ error }}
                     {% endfor %}
                 </div>

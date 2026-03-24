@@ -9,7 +9,7 @@ from wtforms.validators import DataRequired, URL
 import logging
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
+app.config['PORT'] = 5000
 app.config['TORRT_PATH'] = 'torrt'  # or full path to torrt executable
 
 # Configure logging
@@ -67,9 +67,13 @@ def parse_torrents_list(output):
 class AddTorrentForm(FlaskForm):
     """Form for adding torrents"""
     url = StringField('Torrent URL', validators=[DataRequired(), URL()])
-    rpc_alias = SelectField('Torrent Client', choices=[], validators=[DataRequired()])
-    tracker_alias = SelectField('Tracker', choices=[], validators=[DataRequired()])
     download_path = StringField('Download Path (optional)', validators=[])
+    content_layout = SelectField('Content Layout', choices=[
+        ('', 'Use client default'),
+        ('NoSubfolder', 'No Subfolder - Save files directly'),
+        ('CreateSubfolder', 'Create Subfolder - Create folder with torrent name'),
+        ('Original', 'Original - Use structure defined in torrent file')
+    ], validators=[])
     submit = SubmitField('Add Torrent')
 
 class RemoveTorrentForm(FlaskForm):
@@ -85,31 +89,198 @@ class RegisterTorrentForm(FlaskForm):
 
 @app.route('/')
 def index():
-    """Home page showing available commands"""
-    return render_template('index.html')
+    """Home page showing all functionality"""
+    # Get torrents
+    torrents_result = run_torrt_command(['list_torrents'])
+    torrents = []
+    if torrents_result['success']:
+        torrents = parse_torrents_list(torrents_result['output'])
+
+    # Get trackers for register form
+    trackers_result = run_torrt_command(['list_trackers'])
+    trackers = []
+    if trackers_result['success']:
+        trackers = [t.strip() for t in trackers_result['output'].split('\n') if t.strip()]
+
+    # Create forms for each action
+    class SimpleForm:
+        def __init__(self):
+            self.hidden_tag = lambda: ''
+
+    add_form = SimpleForm()
+
+    return render_template('index.html',
+                           torrents=torrents,
+                           trackers=trackers,
+                           add_form=add_form,
+                           walk_result=None)
 
 @app.route('/rpc')
 def list_rpc():
-    """Show known RPCs aliases"""
+    """Show known RPCs aliases with their status"""
     result = run_torrt_command(['list_rpc'])
 
     rpc_list = []
     if result['success']:
-        # Parse output - assuming it's a list of aliases
-        rpc_list = [line.strip() for line in result['output'].split('\n') if line.strip()]
+        # Parse output - torrt list_rpc shows aliases
+        aliases = [line.strip() for line in result['output'].split('\n') if line.strip()]
+
+        # For each alias, check if it's enabled
+        for alias in aliases:
+            rpc_list.append({
+                'alias': alias
+            })
 
     return render_template('rpc.html', rpc_list=rpc_list, result=result)
 
+
+@app.route('/configure_rpc', methods=['POST'])
+def configure_rpc():
+    """Configure RPC client settings"""
+    action = request.form.get('action')
+    rpc_alias = request.form.get('rpc_alias')
+
+    if action == 'add':
+        # Build settings from form
+        settings = []
+        if request.form.get('url'):
+            settings.append(f"url={request.form.get('url')}")
+        if request.form.get('host'):
+            settings.append(f"host={request.form.get('host')}")
+        if request.form.get('port'):
+            settings.append(f"port={request.form.get('port')}")
+        if request.form.get('username'):
+            settings.append(f"user={request.form.get('username')}")
+        if request.form.get('password'):
+            settings.append(f"password={request.form.get('password')}")
+
+        # First configure the RPC
+        if settings:
+            cmd_args = ['configure_rpc', rpc_alias] + settings
+            result = run_torrt_command(cmd_args)
+
+            if result['success']:
+                flash(f'RPC client "{rpc_alias}" configured successfully!', 'success')
+            else:
+                flash(f'Error configuring RPC: {result["error"]}', 'danger')
+                return redirect(url_for('list_rpc'))
+
+        # Then enable it
+        enable_result = run_torrt_command(['enable_rpc', rpc_alias])
+        if enable_result['success']:
+            flash(f'RPC client "{rpc_alias}" enabled successfully!', 'success')
+        else:
+            flash(f'RPC client configured but could not enable: {enable_result["error"]}', 'warning')
+
+    elif action == 'configure':
+        # Update existing RPC configuration
+        settings = []
+        if request.form.get('url'):
+            settings.append(f"url={request.form.get('url')}")
+        if request.form.get('host'):
+            settings.append(f"host={request.form.get('host')}")
+        if request.form.get('port'):
+            settings.append(f"port={request.form.get('port')}")
+        if request.form.get('username'):
+            settings.append(f"user={request.form.get('username')}")
+        if request.form.get('password'):
+            settings.append(f"password={request.form.get('password')}")
+
+        if settings:
+            cmd_args = ['configure_rpc', rpc_alias] + settings
+            result = run_torrt_command(cmd_args)
+
+            if result['success']:
+                flash(f'RPC client "{rpc_alias}" updated successfully!', 'success')
+            else:
+                flash(f'Error updating RPC: {result["error"]}', 'danger')
+
+    return redirect(url_for('list_rpc'))
+
+
+@app.route('/enable_rpc/<alias>', methods=['POST'])
+def enable_rpc(alias):
+    """Enable RPC client by alias"""
+    result = run_torrt_command(['enable_rpc', alias])
+
+    if result['success']:
+        return jsonify({'success': True, 'message': f'RPC {alias} enabled'})
+    else:
+        return jsonify({'success': False, 'error': result['error']}), 400
+
+
+@app.route('/disable_rpc/<alias>', methods=['POST'])
+def disable_rpc(alias):
+    """Disable RPC client by alias"""
+    result = run_torrt_command(['disable_rpc', alias])
+
+    if result['success']:
+        return jsonify({'success': True, 'message': f'RPC {alias} disabled'})
+    else:
+        return jsonify({'success': False, 'error': result['error']}), 400
+
 @app.route('/trackers')
 def list_trackers():
-    """Show known trackers aliases"""
+    """Show known trackers aliases with configuration status"""
     result = run_torrt_command(['list_trackers'])
 
     trackers = []
     if result['success']:
-        trackers = [line.strip() for line in result['output'].split('\n') if line.strip()]
+        # Parse output - torrt list_trackers shows aliases
+        aliases = [line.strip() for line in result['output'].split('\n') if line.strip()]
+
+        # For each alias, check if it's configured
+        # You might need to check torrt config to determine if credentials are set
+        for alias in aliases:
+            trackers.append({
+                'alias': alias,
+                'configured': False  # You can enhance this by checking config file
+            })
 
     return render_template('trackers.html', trackers=trackers, result=result)
+
+
+@app.route('/configure_tracker', methods=['POST'])
+def configure_tracker():
+    """Configure tracker settings (username/password)"""
+    tracker_alias = request.form.get('tracker_alias')
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    if not tracker_alias:
+        flash('Tracker alias is required', 'danger')
+        return redirect(url_for('list_trackers'))
+
+    # Build settings list
+    settings = []
+    if username:
+        settings.append(f"username={username}")
+    if password:
+        settings.append(f"password={password}")
+
+    if not settings:
+        flash('No settings provided to configure', 'warning')
+        return redirect(url_for('list_trackers'))
+
+    # Run configure_tracker command
+    cmd_args = ['configure_tracker', tracker_alias] + settings
+    result = run_torrt_command(cmd_args)
+
+    if result['success']:
+        flash(f'Tracker "{tracker_alias}" configured successfully!', 'success')
+    else:
+        flash(f'Error configuring tracker: {result["error"]}', 'danger')
+
+    return redirect(url_for('list_trackers'))
+
+
+# Optional: Add a route to test tracker configuration
+@app.route('/test_tracker/<alias>', methods=['POST'])
+def test_tracker(alias):
+    """Test tracker configuration by trying to fetch something"""
+    # This would require implementing a test method in torrt
+    # For now, just return success
+    return jsonify({'success': True, 'message': f'Tracker {alias} test not implemented yet'})
 
 @app.route('/torrents')
 def list_torrents():
@@ -133,15 +304,31 @@ def list_notifiers():
 
     return render_template('notifiers.html', notifiers=notifiers, result=result)
 
-@app.route('/walk', methods=['GET', 'POST'])
+@app.route('/walk', methods=['POST'])
 def walk():
     """Walk through registered torrents and perform automatic updates"""
-    if request.method == 'POST':
-        result = run_torrt_command(['walk'])
-        flash('Walk completed. Check results below.', 'info')
-        return render_template('walk.html', result=result)
+    result = run_torrt_command(['walk'])
 
-    return render_template('walk.html', result=None)
+    # Get updated data for index page
+    torrents_result = run_torrt_command(['list_torrents'])
+    torrents = []
+    if torrents_result['success']:
+        torrents = parse_torrents_list(torrents_result['output'])
+
+    trackers_result = run_torrt_command(['list_trackers'])
+    trackers = []
+    if trackers_result['success']:
+        trackers = [t.strip() for t in trackers_result['output'].split('\n') if t.strip()]
+
+    class SimpleForm:
+        def __init__(self):
+            self.hidden_tag = lambda: ''
+
+    return render_template('index.html',
+                           torrents=torrents,
+                           trackers=trackers,
+                           add_form=SimpleForm(),
+                           walk_result=result)
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_torrent():
@@ -154,6 +341,10 @@ def add_torrent():
         # Add download path if provided
         if form.download_path.data:
             cmd_args.extend(['-d', form.download_path.data])
+
+        # Add content_layout if specified (for qBittorrent)
+        if form.content_layout.data:
+            cmd_args.extend(['--content-layout', form.content_layout.data])
 
         result = run_torrt_command(cmd_args)
 
@@ -244,4 +435,4 @@ def api_command(command):
     return jsonify(result)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=app.config['PORT'])
