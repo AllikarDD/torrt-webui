@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   torrt-webui:
-    image: yourusername/torrt-webui:latest
+    image: allikardd/torrt-webui:1.0.0
     container_name: torrt-webui
     restart: unless-stopped
     ports:
