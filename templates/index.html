@@ -40,6 +40,9 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/notifiers">Notifiers</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/set_walk_interval">Walk Interval</a>
+                </li>
             </ul>
         </div>
     </div>
@@ -124,6 +127,7 @@
             </div>
 
             <!-- Add Torrent -->
+            <!-- In index.html, update the Add Torrent form section -->
             <div class="card action-card">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0">➕ Add Torrent</h5>
@@ -133,7 +137,7 @@
                         {{ add_form.hidden_tag() if add_form else '' }}
                         <div class="mb-2">
                             <input type="text" name="url" class="form-control form-control-sm"
-                                   placeholder="Torrent URL" required>
+                                   placeholder="Torrent URL (required)" required>
                         </div>
                         <div class="mb-2">
                             <input type="text" name="download_path" class="form-control form-control-sm"
@@ -149,6 +153,9 @@
                         </div>
                         <button type="submit" class="btn btn-info btn-sm">Add Torrent</button>
                     </form>
+                    <small class="text-muted d-block mt-2">Example: https://rutracker.org/forum/viewtopic.php?t=6807886</small>
+                    <small class="text-muted d-block mt-2">Example: /downloads/Сериалы/Фрирен, провожающая в последний путь Frieren, Beyond Journey's End/Season 02</small>
+
                 </div>
             </div>
 

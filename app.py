@@ -11,10 +11,26 @@ import logging
 app = Flask(__name__)
 app.config['PORT'] = 5000
 app.config['TORRT_PATH'] = 'torrt'  # or full path to torrt executable
+app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+def get_current_walk_interval():
+    """Try to get current walk interval from torrt config"""
+    config_path = os.path.expanduser('~/.config/torrt/config.py')
+    try:
+        with open(config_path, 'r') as f:
+            content = f.read()
+            # Look for WALK_INTERVAL setting
+            import re
+            match = re.search(r'WALK_INTERVAL\s*=\s*(\d+(?:\.\d+)?)', content)
+            if match:
+                return float(match.group(1))
+    except:
+        pass
+    return None
 
 def run_torrt_command(cmd_args):
     """Execute torrt command and return output"""
@@ -68,7 +84,7 @@ class AddTorrentForm(FlaskForm):
     """Form for adding torrents"""
     url = StringField('Torrent URL', validators=[DataRequired(), URL()])
     download_path = StringField('Download Path (optional)', validators=[])
-    content_layout = SelectField('Content Layout', choices=[
+    content_layout = SelectField('Content Layout (for qBittorrent)', choices=[
         ('', 'Use client default'),
         ('NoSubfolder', 'No Subfolder - Save files directly'),
         ('CreateSubfolder', 'Create Subfolder - Create folder with torrent name'),
@@ -342,9 +358,10 @@ def add_torrent():
         if form.download_path.data:
             cmd_args.extend(['-d', form.download_path.data])
 
-        # Add content_layout if specified (for qBittorrent)
+        # Add content_layout as params if specified (for qBittorrent)
         if form.content_layout.data:
-            cmd_args.extend(['--content-layout', form.content_layout.data])
+            params = f'contentLayout={form.content_layout.data}'
+            cmd_args.extend(['--params', params])
 
         result = run_torrt_command(cmd_args)
 
@@ -420,6 +437,37 @@ def unregister_torrent():
         return redirect(url_for('unregister_torrent'))
 
     return render_template('unregister.html', form=form)
+
+@app.route('/set_walk_interval', methods=['GET', 'POST'])
+def set_walk_interval():
+    """Set interval between consecutive torrent updates checks"""
+    if request.method == 'POST':
+        walk_interval = request.form.get('walk_interval')
+
+        if not walk_interval:
+            flash('Walk interval is required', 'danger')
+            return redirect(url_for('set_walk_interval'))
+
+        try:
+            interval = int(walk_interval)
+            if interval <= 0:
+                flash('Interval must be greater than 0', 'danger')
+                return redirect(url_for('set_walk_interval'))
+
+            result = run_torrt_command(['set_walk_interval', str(interval)])
+
+            if result['success']:
+                flash(f'Walk interval set to {interval} hours successfully!', 'success')
+            else:
+                flash(f'Error setting walk interval: {result["error"]}', 'danger')
+
+        except ValueError:
+            flash('Please enter a valid number', 'danger')
+
+        return redirect(url_for('set_walk_interval'))
+
+    current_interval = get_current_walk_interval()
+    return render_template('set_walk_interval.html', current_interval=current_interval)
 
 @app.route('/api/<command>')
 def api_command(command):

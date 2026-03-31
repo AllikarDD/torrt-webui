@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Set Walk Interval{% endblock %}
+
+{% block content %}
+<h2>Set Walk Interval</h2>
+<a href="/" class="btn btn-secondary mb-3">Back to Home</a>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">⏰ Automatic Update Interval</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="walk_interval" class="form-label">Walk Interval (hours)</label>
+                        <input type="number"
+                               class="form-control"
+                               id="walk_interval"
+                               name="walk_interval"
+                               step="0.5"
+                               min="0.5"
+                               value="{{ current_interval if current_interval else '6' }}"
+                               required>
+                        <div class="form-text">
+                            Set how often torrt should check for torrent updates.
+                            <br>Example: 6 hours means updates checked every 6 hours.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Common intervals:</label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setInterval(1)">1 hour</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setInterval(3)">3 hours</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setInterval(6)">6 hours</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setInterval(12)">12 hours</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setInterval(24)">24 hours</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Interval</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">ℹ️ About Walk Interval</h5>
+            </div>
+            <div class="card-body">
+                <p>The walk interval determines how frequently torrt checks for updates to your registered torrents.</p>
+
+                <h6>Recommendations:</h6>
+                <ul>
+                    <li><strong>Frequent updates (1-3 hours):</strong> For time-sensitive content like daily TV shows</li>
+                    <li><strong>Regular updates (6-12 hours):</strong> Good balance for most content</li>
+                    <li><strong>Infrequent updates (24+ hours):</strong> For content that updates slowly or to save resources</li>
+                </ul>
+
+                <h6>How it works:</h6>
+                <ol>
+                    <li>torrt checks all registered torrents at the specified interval</li>
+                    <li>If updates are found, they're automatically added to your torrent client</li>
+                    <li>You can also manually trigger updates from the <a href="/">main page</a></li>
+                </ol>
+
+                <div class="alert alert-warning mt-3">
+                    <strong>Note:</strong> Setting very short intervals (less than 1 hour) may put excessive load on tracker sites.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setInterval(hours) {
+        document.getElementById('walk_interval').value = hours;
+    }
+</script>
+{% endblock %}

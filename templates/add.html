@@ -16,8 +16,8 @@
 
             <div class="mb-3">
                 {{ form.url.label(class="form-label") }}
-                {{ form.url(class="form-control", placeholder="https://example.com/torrent.torrent or magnet:?xt=urn:btih:...") }}
-                <div class="form-text">Torrent URL or magnet link</div>
+                {{ form.url(class="form-control", placeholder="https://rutracker.org/forum/viewtopic.php?t=123456") }}
+                <div class="form-text">Torrent URL from supported tracker (e.g., rutracker.org, nnm-club.me, etc.)</div>
                 {% if form.url.errors %}
                 <div class="alert alert-danger mt-1">
                     {% for error in form.url.errors %}
@@ -29,7 +29,7 @@
 
             <div class="mb-3">
                 {{ form.download_path.label(class="form-label") }}
-                {{ form.download_path(class="form-control", placeholder="/path/to/downloads (optional)") }}
+                {{ form.download_path(class="form-control", placeholder="/downloads/TV Series/Show Name/Season 02") }}
                 <div class="form-text">Destination path to download torrent contents (leave empty for default client path)</div>
                 {% if form.download_path.errors %}
                 <div class="alert alert-danger mt-1">
@@ -44,12 +44,13 @@
                 {{ form.content_layout.label(class="form-label") }}
                 {{ form.content_layout(class="form-select") }}
                 <div class="form-text">
-                    <strong>For qBittorrent:</strong> Controls folder structure for downloaded content
+                    <strong>For qBittorrent only:</strong> Controls folder structure for downloaded content
                     <ul class="mt-2 mb-0">
                         <li><strong>No Subfolder</strong> - Saves files directly to download path</li>
                         <li><strong>Create Subfolder</strong> - Creates folder with torrent name</li>
                         <li><strong>Original</strong> - Uses structure defined in torrent file</li>
                     </ul>
+                    <small class="text-muted">This will be passed as: --params 'contentLayout=YourChoice'</small>
                 </div>
                 {% if form.content_layout.errors %}
                 <div class="alert alert-danger mt-1">
@@ -62,6 +63,15 @@
 
             {{ form.submit(class="btn btn-primary") }}
         </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Example Command</h5>
+    </div>
+    <div class="card-body">
+        <pre class="mb-0"><code>torrt add_torrent -d "/downloads/Сериалы/Фрирен/Season 02" --params 'contentLayout=NoSubfolder' https://rutracker.org/forum/viewtopic.php?t=6807886</code></pre>
     </div>
 </div>
 {% endblock %}
