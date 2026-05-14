@@ -180,3 +180,9 @@ docker exec -it torrt-webui torrt clients list
 # 6. Stop and remove when done
 docker stop torrt-webui && docker rm torrt-webui
 ```
+
+
+
+```
+docker build -t torrt-webui . && docker run -d --name torrt-webui -p 5000:5000 torrt-webui && docker exec -it torrt-webui bash
+```

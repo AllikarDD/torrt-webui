@@ -57,9 +57,10 @@ def get_current_walk_interval():
 
 def run_torrt_command(cmd_args):
     """Execute torrt command and return output"""
+    cmd = [app.config['TORRT_PATH']] + cmd_args
+    logger.debug(f"Running command: {' '.join(cmd)}")
+
     try:
-        cmd = [app.config['TORRT_PATH']] + cmd_args
-        logger.debug(f"Running command: {' '.join(cmd)}")
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -69,13 +70,22 @@ def run_torrt_command(cmd_args):
 
         # torrt outputs to stderr, combine both or use stderr
         output = result.stderr if result.stderr else result.stdout
+        response = {
+            'returncode': result.returncode,
+            'stdout': result.stdout.strip(),
+            'stderr': result.stderr.strip(),
+            'output': output.strip()
+        }
+        logger.debug('Command response: %s', response)
 
         if result.returncode != 0:
-            logger.error(f"Command failed: {output}")
+            logger.error(f"Command failed (returncode={result.returncode}): {output}")
             return {'success': False, 'output': output, 'error': output}
 
         return {'success': True, 'output': output}
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        logger.error('Command timed out: %s', ' '.join(cmd))
+        logger.debug('Timeout exception: %s', exc)
         return {'success': False, 'output': 'Command timed out', 'error': 'Timeout'}
     except Exception as e:
         logger.exception("Error running torrt command")
