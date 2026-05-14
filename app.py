@@ -7,15 +7,38 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, URL
 import logging
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
-app.config['PORT'] = 5000
-app.config['TORRT_PATH'] = 'torrt'  # or full path to torrt executable
-app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
+app.config['PORT'] = int(os.environ.get('TORRTWEBUI_PORT', 5000))
+app.config['TORRT_PATH'] = os.environ.get('TORRTWEBUI_TORRT_PATH', 'torrt')  # or full path to torrt executable
+app.config['SECRET_KEY'] = os.environ.get('TORRTWEBUI_SECRET_KEY', 'your-secret-key-here-change-in-production')
+app.config['LOG_FILE'] = os.environ.get('TORRTWEBUI_LOG_FILE', '/var/log/torrtwebui/log.txt')
+app.config['LOG_LEVEL'] = os.environ.get('TORRTWEBUI_LOG_LEVEL', 'DEBUG').upper()
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+log_file = os.path.expanduser(app.config['LOG_FILE'])
+log_dir = os.path.dirname(log_file)
+if log_dir:
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+    except OSError:
+        pass
+
+log_level = getattr(logging, app.config['LOG_LEVEL'], logging.DEBUG)
+logging.basicConfig(level=log_level,
+                    format='%(asctime)s %(levelname)s [%(name)s] %(message)s',
+                    handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
+logger.setLevel(log_level)
+
+try:
+    file_handler = RotatingFileHandler(log_file, maxBytes=10_000_000, backupCount=5)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s [%(name)s] %(message)s'))
+    file_handler.setLevel(log_level)
+    logger.addHandler(file_handler)
+except OSError as exc:
+    logger.warning('Could not open log file %s (%s); falling back to console only', log_file, exc)
 
 def get_current_walk_interval():
     """Try to get current walk interval from torrt config"""
