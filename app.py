@@ -96,19 +96,31 @@ def parse_torrents_list(output):
     torrents = []
     lines = output.strip().split('\n')
 
+    logger.info(f"lines {lines}")
+
     for line in lines:
         line = line.strip()
         if line and not line.startswith('INFO: walk'):
             # Remove "INFO: " prefix if present
             if line.startswith('INFO:'):
                 line = line[5:].strip()
+                logger.info(f"line {line}")
+
 
             parts = line.split('\t')
+            logger.info(f"line {parts}")
+
             if len(parts) >= 2:
                 torrents.append({
                     'hash': parts[0].strip(),
                     'name': parts[1].strip(),
                     'tracker': parts[2].strip() if len(parts) > 2 else 'N/A'
+                })
+            else:
+                torrents.append({
+                    'hash': parts[0].strip(),
+                    'name': "N/A",
+                    'tracker': 'N/A'
                 })
 
     return torrents
@@ -133,7 +145,6 @@ class RemoveTorrentForm(FlaskForm):
 class RegisterTorrentForm(FlaskForm):
     """Form for registering existing torrents"""
     torrent_hash = StringField('Torrent Hash', validators=[DataRequired()])
-    tracker_alias = SelectField('Tracker', choices=[], validators=[DataRequired()])
     submit = SubmitField('Register Torrent')
 
 @app.route('/')
@@ -142,8 +153,12 @@ def index():
     # Get torrents
     torrents_result = run_torrt_command(['list_torrents'])
     torrents = []
+
+    logger.info(f"torrents_result {torrents_result}")
     if torrents_result['success']:
         torrents = parse_torrents_list(torrents_result['output'])
+        logger.info(f"torrents_result {torrents}")
+
 
     # Get trackers for register form
     trackers_result = run_torrt_command(['list_trackers'])
@@ -172,13 +187,20 @@ def list_rpc():
     rpc_list = []
     if result['success']:
         # Parse output - torrt list_rpc shows aliases
-        aliases = [line.strip() for line in result['output'].split('\n') if line.strip()]
+        res = [line.split(':')[1].strip() for line in result['output'].split('\n') if line.strip()]
+        
+
+        logger.info(f"aliases =  {res}")
 
         # For each alias, check if it's enabled
-        for alias in aliases:
+        for alias in res:
             rpc_list.append({
-                'alias': alias
+                'alias': alias.split('\t')[0],
+                'status': alias.split('\t')[1].split('=')[1]
             })
+
+        logger.info(f"rpc_list =  {rpc_list}")
+
 
     return render_template('rpc.html', rpc_list=rpc_list, result=result)
 
@@ -276,14 +298,13 @@ def list_trackers():
     trackers = []
     if result['success']:
         # Parse output - torrt list_trackers shows aliases
-        aliases = [line.strip() for line in result['output'].split('\n') if line.strip()]
+        aliases = [line[5:].strip() for line in result['output'].split('\n') if line.strip()]
 
         # For each alias, check if it's configured
         # You might need to check torrt config to determine if credentials are set
         for alias in aliases:
             trackers.append({
-                'alias': alias,
-                'configured': False  # You can enhance this by checking config file
+                'alias': alias
             })
 
     return render_template('trackers.html', trackers=trackers, result=result)
@@ -430,26 +451,22 @@ def register_torrent():
     """Register torrent within torrt by its hash (for torrents already existing at torrent clients)"""
     form = RegisterTorrentForm()
 
-    # Get available trackers
-    tracker_result = run_torrt_command(['list_trackers'])
+    if request.method == 'POST':
+        torrent_hash = request.form.get('torrent_hash')
 
-    if tracker_result['success']:
-        form.tracker_alias.choices = [(t.strip(), t.strip()) for t in tracker_result['output'].split('\n') if t.strip()]
+        if torrent_hash:
+            cmd_args = ['register_torrent', torrent_hash]
 
-    if form.validate_on_submit():
-        cmd_args = [
-            'register_torrent',
-            form.torrent_hash.data,
-            '--tracker', form.tracker_alias.data
-        ]
-        result = run_torrt_command(cmd_args)
+            result = run_torrt_command(cmd_args)
+            if result['success']:
+                flash(f'Torrent {torrent_hash} registered successfully!', 'success')
+            else:
+                flash(f'Error registering torrent: {result["error"]}', 'danger')
 
-        if result['success']:
-            flash(f'Torrent {form.torrent_hash.data} registered successfully!', 'success')
-        else:
-            flash(f'Error registering torrent: {result["error"]}', 'danger')
-
-        return redirect(url_for('register_torrent'))
+            # Keep the user on the page they submitted from
+            if request.referrer and request.referrer.endswith(url_for('index')):
+                return redirect(url_for('index'))
+            return redirect(url_for('register_torrent'))
 
     return render_template('register.html', form=form)
 

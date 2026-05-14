@@ -36,7 +36,7 @@
                 <tbody>
                 {% for tracker in trackers %}
                 <tr>
-                    <td><strong>{{ tracker.alias[5:] }}</strong></td>
+                    <td><strong>{{ tracker.alias }}</strong></td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="showEditForm('{{ tracker.alias }}')">
                             Configure
@@ -106,7 +106,6 @@
     </div>
 </div>
 
-<script>
 <script>
     function showEditForm(alias) {
         document.getElementById('edit_alias').value = alias;

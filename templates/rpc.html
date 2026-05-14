@@ -18,13 +18,15 @@
                 <thead>
                 <tr>
                     <th>Alias</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for rpc in rpc_list %}
                 <tr>
-                    <td><strong>{{ rpc.alias[5:] }}</strong></td>
+                    <td><strong>{{ rpc.alias }}</strong></td>
+                    <td><strong>{{ rpc.status }}</strong></td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="showEditForm('{{ rpc.alias }}')">Configure</button>
                         <button class="btn btn-sm btn-warning" onclick="disableRPC('{{ rpc.alias }}')">Disable</button>
@@ -40,60 +42,6 @@
     </div>
 </div>
 
-<!-- Add new RPC client form -->
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">➕ Add New RPC Client</h5>
-    </div>
-    <div class="card-body">
-        <form method="POST" action="{{ url_for('configure_rpc') }}">
-            <input type="hidden" name="action" value="add">
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <label class="form-label">RPC Alias</label>
-                    <input type="text" name="rpc_alias" class="form-control"
-                           placeholder="e.g., transmission, qbittorrent" required>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <label class="form-label">Type/Class</label>
-                    <select name="rpc_class" class="form-select" required>
-                        <option value="">Select RPC type...</option>
-                        <option value="torrt.rpc.transmission.TransmissionRPC">Transmission</option>
-                        <option value="torrt.rpc.qbittorrent.QBittorrentRPC">qBittorrent</option>
-                        <option value="torrt.rpc.deluge.DelugeRPC">Deluge</option>
-                        <option value="torrt.rpc.utorrent.UTorrentRPC">uTorrent</option>
-                    </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">URL/Host</label>
-                    <input type="text" name="url" class="form-control"
-                           placeholder="http://localhost:9091/transmission/rpc">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control" placeholder="Username (if required)">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password" name="password" class="form-control" placeholder="Password (if required)">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Port (alternative)</label>
-                    <input type="number" name="port" class="form-control" placeholder="Port (optional)">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Host (alternative)</label>
-                    <input type="text" name="host" class="form-control" placeholder="Host (optional)">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Add RPC Client</button>
-        </form>
-    </div>
-</div>
 
 <!-- Configure existing RPC form (hidden, shown when Edit clicked) -->
 <div id="editForm" class="card mb-4" style="display: none;">
@@ -104,10 +52,6 @@
         <form method="POST" action="{{ url_for('configure_rpc') }}" id="configureForm">
             <input type="hidden" name="action" value="configure">
             <input type="hidden" name="rpc_alias" id="edit_alias">
-            <div class="mb-3">
-                <label class="form-label">URL/Host</label>
-                <input type="text" name="url" id="edit_url" class="form-control">
-            </div>
             <div class="mb-3">
                 <label class="form-label">Username</label>
                 <input type="text" name="username" id="edit_username" class="form-control">
