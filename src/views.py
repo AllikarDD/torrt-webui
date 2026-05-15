@@ -14,9 +14,6 @@ def index():
     torrents_result = run_torrt_command(['list_torrents'])
     torrents = parse_torrents_list(torrents_result['output']) if torrents_result['success'] else []
 
-    trackers_result = run_torrt_command(['list_trackers'])
-    trackers = parse_tracker_lines(trackers_result['output']) if trackers_result['success'] else []
-
     class SimpleForm:
         def __init__(self):
             self.hidden_tag = lambda: ''
@@ -24,7 +21,6 @@ def index():
     return render_template(
         'index.html',
         torrents=torrents,
-        trackers=trackers,
         add_form=SimpleForm(),
         walk_result=None,
     )
@@ -37,8 +33,12 @@ def list_rpc():
     if result['success']:
         for raw_line in result['output'].splitlines():
             line = raw_line.strip()
-            if not line or line.startswith('INFO:'):
+            if not line:
                 continue
+            if line.startswith('INFO:'):
+                line = line[5:].strip()
+                if not line:
+                    continue
 
             parts = [part.strip() for part in line.split('\t') if part.strip()]
             if not parts:

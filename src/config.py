@@ -27,15 +27,15 @@ def configure_app(app):
         format='%(asctime)s %(levelname)s [%(name)s] %(message)s',
         handlers=[logging.StreamHandler()],
     )
-    logger = logging.getLogger(__name__)
-    logger.setLevel(log_level)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
 
     try:
         file_handler = RotatingFileHandler(log_file, maxBytes=10_000_000, backupCount=5)
         file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s [%(name)s] %(message)s'))
         file_handler.setLevel(log_level)
-        logger.addHandler(file_handler)
+        root_logger.addHandler(file_handler)
     except OSError as exc:
-        logger.warning('Could not open log file %s (%s); falling back to console only', log_file, exc)
+        logging.getLogger(__name__).warning('Could not open log file %s (%s); falling back to console only', log_file, exc)
 
-    return logger
+    return root_logger

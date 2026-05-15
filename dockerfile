@@ -1,21 +1,24 @@
 FROM python:3.13-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
 # Install torrt and web app dependencies
-RUN pip install --no-cache-dir torrt flask flask-wtf
-
-# Create directories
-RUN mkdir -p /root/.torrt /app
-
 WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir torrt
 
-# Copy web app
+# Create torrents config directory
+RUN mkdir -p /root/.torrt
+
+# Copy application files
 COPY templates/ ./templates/
-COPY src/ ./src/
 COPY static/ ./static/
+COPY src/ ./src/
 
-# Create entrypoint
-RUN echo '#!/bin/bash\n\
-exec python src/app.py\n' > /entrypoint.sh && chmod +x /entrypoint.sh
-
+# Expose app port and run
 EXPOSE 5000
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python", "src/app.py"]
+

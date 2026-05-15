@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 import logging
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +20,25 @@ def get_current_walk_interval():
     return None
 
 
-def run_torrt_command(app, cmd_args):
+from flask import current_app
+
+def run_torrt_command(cmd_args):
     """Execute torrt command and return output."""
-    cmd = [app.config['TORRT_PATH']] + cmd_args
+    torrt_path = current_app.config['TORRT_PATH']
+    resolved_path = torrt_path
+
+    if not os.path.isabs(torrt_path):
+        resolved_path = shutil.which(torrt_path)
+
+    if not resolved_path or (os.path.isabs(torrt_path) and not os.path.exists(torrt_path)):
+        logger.error('torrt executable not found: %s', torrt_path)
+        return {
+            'success': False,
+            'output': '',
+            'error': f'torrt executable not found: {torrt_path}'
+        }
+
+    cmd = [resolved_path] + cmd_args
     logger.debug('Running command: %s', ' '.join(cmd))
 
     try:
@@ -31,9 +48,6 @@ def run_torrt_command(app, cmd_args):
             text=True,
             timeout=30,
         )
-    except FileNotFoundError as exc:
-        logger.exception('torrt executable not found')
-        return {'success': False, 'output': '', 'error': str(exc)}
     except subprocess.TimeoutExpired as exc:
         logger.error('Command timed out: %s', ' '.join(cmd))
         logger.debug('Timeout exception: %s', exc)
@@ -67,10 +81,13 @@ def parse_torrents_list(output):
             continue
         if line.startswith('INFO:'):
             line = line[5:].strip()
+            if not line:
+                continue
 
-        parts = [part.strip() for part in line.split('\t')]
-        if len(parts) < 2 or not parts[0] or not parts[1]:
-            logger.debug('Skipping unparsable torrent line: %s', raw_line)
+        parts = [part.strip() for part in line.split('\t') if part.strip()]
+        if len(parts) < 2:
+            if raw_line.strip() and not raw_line.strip().startswith('INFO:'):
+                logger.debug('Skipping unparsable torrent line: %s', raw_line)
             continue
 
         torrents.append({
