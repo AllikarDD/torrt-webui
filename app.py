@@ -337,7 +337,10 @@ def configure_tracker():
     result = run_torrt_command(cmd_args)
 
     if result['success']:
-        flash(f'Tracker "{tracker_alias}" configured successfully!', 'success')
+        if "WARNING" in result['output'] or "ERROR" in result['output']:
+                flash(f'Error adding torrent: {result["output"]}', 'danger')
+        else:
+            flash(f'Tracker "{tracker_alias}" configured successfully!', 'success')
     else:
         flash(f'Error configuring tracker: {result["error"]}', 'danger')
 
@@ -405,7 +408,7 @@ def add_torrent():
     """Add torrent from URL both to torrt and torrent clients"""
     form = AddTorrentForm()
 
-    if form.validate_on_submit():
+    if request.method == 'POST':
         cmd_args = ['add_torrent', form.url.data]
 
         # Add download path if provided
@@ -420,31 +423,37 @@ def add_torrent():
         result = run_torrt_command(cmd_args)
 
         if result['success']:
-            flash(f'Torrent added successfully!', 'success')
+            if "WARNING" in result['output'] or "ERROR" in result['output']:
+                flash(f'Error adding torrent: {result["output"]}', 'danger')
+            else:
+                flash(f'Torrent added successfully!', 'success')
         else:
             flash(f'Error adding torrent: {result["error"]}', 'danger')
 
-        return redirect(url_for('add_torrent'))
+        return redirect(url_for('index')) 
 
-    return render_template('add.html', form=form)
 
 @app.route('/remove', methods=['GET', 'POST'])
 def remove_torrent():
     """Remove torrent by its hash both from torrt and torrent clients"""
     form = RemoveTorrentForm()
 
-    if form.validate_on_submit():
-        cmd_args = ['remove_torrent', form.torrent_hash.data]
-        result = run_torrt_command(cmd_args)
+    if request.method == 'POST':
+        torrent_hash = request.form.get('torrent_hash')
 
-        if result['success']:
-            flash(f'Torrent {form.torrent_hash.data} removed successfully!', 'success')
-        else:
-            flash(f'Error removing torrent: {result["error"]}', 'danger')
+        if torrent_hash:
+            cmd_args = ['remove_torrent', form.torrent_hash.data]
+            result = run_torrt_command(cmd_args)
 
-        return redirect(url_for('remove_torrent'))
+            if result['success']:
+                if "WARNING" in result['output'] or "ERROR" in result['output']:
+                    flash(f'Error adding torrent: {result["output"]}', 'danger')
+                else:
+                    flash(f'Torrent {form.torrent_hash.data} removed successfully!', 'success')
+            else:
+                flash(f'Error removing torrent: {result["error"]}', 'danger')
 
-    return render_template('remove.html', form=form)
+            return redirect(url_for('index')) 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register_torrent():
@@ -459,34 +468,40 @@ def register_torrent():
 
             result = run_torrt_command(cmd_args)
             if result['success']:
-                flash(f'Torrent {torrent_hash} registered successfully!', 'success')
+                if "WARNING" in result['output'] or "ERROR" in result['output']:
+                    flash(f'Error adding torrent: {result["output"]}', 'danger')
+                else:
+                    flash(f'Torrent {torrent_hash} registered successfully!', 'success')
             else:
                 flash(f'Error registering torrent: {result["error"]}', 'danger')
 
             # Keep the user on the page they submitted from
-            if request.referrer and request.referrer.endswith(url_for('index')):
-                return redirect(url_for('index'))
-            return redirect(url_for('register_torrent'))
+            return redirect(url_for('index'))   
+            
 
-    return render_template('register.html', form=form)
 
 @app.route('/unregister', methods=['GET', 'POST'])
 def unregister_torrent():
     """Unregister torrent from torrt by its hash"""
     form = RemoveTorrentForm()  # Reuse the same form for hash input
 
-    if form.validate_on_submit():
-        cmd_args = ['unregister_torrent', form.torrent_hash.data]
-        result = run_torrt_command(cmd_args)
+    if request.method == 'POST':
+        torrent_hash = request.form.get('torrent_hash')
 
-        if result['success']:
-            flash(f'Torrent {form.torrent_hash.data} unregistered successfully!', 'success')
-        else:
-            flash(f'Error unregistering torrent: {result["error"]}', 'danger')
+        if torrent_hash:
+            cmd_args = ['unregister_torrent', form.torrent_hash.data]
+            result = run_torrt_command(cmd_args)
 
-        return redirect(url_for('unregister_torrent'))
+            if result['success']:
+                if "WARNING" in result['output'] or "ERROR" in result['output']:
+                    flash(f'Error adding torrent: {result["output"]}', 'danger')
+                else:
+                    flash(f'Torrent {form.torrent_hash.data} unregistered successfully!', 'success')
+            else:
+                flash(f'Error unregistering torrent: {result["error"]}', 'danger')
 
-    return render_template('unregister.html', form=form)
+            return redirect(url_for('index'))
+
 
 @app.route('/set_walk_interval', methods=['GET', 'POST'])
 def set_walk_interval():
