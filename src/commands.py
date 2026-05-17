@@ -77,17 +77,24 @@ def parse_torrents_list(output):
     torrents = []
     for raw_line in output.splitlines():
         line = raw_line.strip()
+
         if not line or line.startswith('INFO: walk'):
             continue
         if line.startswith('INFO:'):
             line = line[5:].strip()
-            if not line:
+        if not line:
                 continue
 
         parts = [part.strip() for part in line.split('\t') if part.strip()]
+
         if len(parts) < 2:
             if raw_line.strip() and not raw_line.strip().startswith('INFO:'):
                 logger.debug('Skipping unparsable torrent line: %s', raw_line)
+            torrents.append({
+                'hash': parts[0],
+                'name': 'N/A',
+                'tracker': 'N/A',
+            })
             continue
 
         torrents.append({
@@ -95,6 +102,7 @@ def parse_torrents_list(output):
             'name': parts[1],
             'tracker': parts[2] if len(parts) > 2 else 'N/A',
         })
+
     return torrents
 
 

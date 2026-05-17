@@ -14,14 +14,18 @@ def index():
     torrents_result = run_torrt_command(['list_torrents'])
     torrents = parse_torrents_list(torrents_result['output']) if torrents_result['success'] else []
 
-    class SimpleForm:
-        def __init__(self):
-            self.hidden_tag = lambda: ''
+    add_form = AddTorrentForm()
+    remove_form = RemoveTorrentForm()
+    unregister_form = RemoveTorrentForm()
+    register_form = RegisterTorrentForm()
 
     return render_template(
         'index.html',
         torrents=torrents,
-        add_form=SimpleForm(),
+        add_form=add_form,
+        remove_form=remove_form,
+        unregister_form=unregister_form,
+        register_form=register_form,
         walk_result=None,
     )
 
@@ -138,14 +142,18 @@ def walk():
     torrents = parse_torrents_list(run_torrt_command(['list_torrents'])['output'])
     trackers = parse_tracker_lines(run_torrt_command(['list_trackers'])['output'])
 
-    class SimpleForm:
-        def __init__(self):
-            self.hidden_tag = lambda: ''
+    add_form = AddTorrentForm()
+    remove_form = RemoveTorrentForm()
+    unregister_form = RemoveTorrentForm()
+    register_form = RegisterTorrentForm()
 
     return render_template('index.html',
                            torrents=torrents,
                            trackers=trackers,
-                           add_form=SimpleForm(),
+                           add_form=add_form,
+                           remove_form=remove_form,
+                           unregister_form=unregister_form,
+                           register_form=register_form,
                            walk_result=result)
 
 
