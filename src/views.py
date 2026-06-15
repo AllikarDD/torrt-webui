@@ -1,4 +1,6 @@
-﻿from flask import render_template, redirect, url_for
+﻿import os
+
+from flask import current_app, render_template, redirect, url_for
 from src.commands import get_current_walk_interval
 from src.forms import AddTorrentForm, RemoveTorrentForm, RegisterTorrentForm
 
@@ -83,6 +85,38 @@ def set_walk_interval():
     return render_template('set_walk_interval.html', current_interval=current_interval)
 
 
+def tail_log_file(log_file, max_lines=200):
+    if not log_file:
+        return None, 'Log file path is not configured.'
+
+    log_file = os.path.expanduser(log_file)
+    try:
+        with open(log_file, 'rb') as file:
+            file.seek(0, os.SEEK_END)
+            buffer = bytearray()
+            block_size = 1024
+            while file.tell() > 0 and buffer.count(b"\n") <= max_lines:
+                seek_offset = min(file.tell(), block_size)
+                file.seek(-seek_offset, os.SEEK_CUR)
+                buffer[0:0] = file.read(seek_offset)
+                file.seek(-seek_offset, os.SEEK_CUR)
+                if file.tell() == 0:
+                    break
+            lines = buffer.splitlines()
+            if len(lines) > max_lines:
+                lines = lines[-max_lines:]
+            text = b"\n".join(lines).decode('utf-8', errors='replace')
+            return text, None
+    except OSError as exc:
+        return None, str(exc)
+
+
+def logs():
+    log_file = current_app.config.get('LOG_FILE')
+    log_text, error = tail_log_file(log_file)
+    return render_template('logs.html', log_file=log_file, log_text=log_text, error=error)
+
+
 def favicon():
     from flask import send_from_directory
     return send_from_directory('static', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
@@ -107,3 +141,4 @@ def register_routes(app):
     app.add_url_rule('/register', 'register_torrent', register_torrent)
     app.add_url_rule('/unregister', 'unregister_torrent', unregister_torrent)
     app.add_url_rule('/set_walk_interval', 'set_walk_interval', set_walk_interval)
+    app.add_url_rule('/logs', 'logs', logs)

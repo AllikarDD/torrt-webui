@@ -1,5 +1,6 @@
 ﻿import os
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from src.config import configure_app
 import src.views as views  # Import views to register routes
@@ -11,6 +12,10 @@ STATIC_DIR = os.path.join(BASE_DIR, 'static')
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 logger = configure_app(app)
+
+# Apply ProxyFix middleware to trust proxy headers (X-Forwarded-* headers from reverse proxy)
+# This enables Flask to detect HTTPS, client IP, and original host from proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
 # Register all routes
 views.register_routes(app)
