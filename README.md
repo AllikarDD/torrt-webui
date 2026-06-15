@@ -207,14 +207,15 @@ docker login
 Build with your Docker Hub username
 
 ```bash
-docker build -t allikardd/torrt-webui:latest .
-docker build -t allikardd/torrt-webui:1.0.5 .
+
 ```
 # Push to Docker Hub:
 
 Push all tags
 
 ```bash
+docker build -t allikardd/torrt-webui:latest .
+docker build -t allikardd/torrt-webui:1.1.0 .
 docker push allikardd/torrt-webui:latest
-docker push allikardd/torrt-webui:1.0.5
+docker push allikardd/torrt-webui:1.1.0
 ```

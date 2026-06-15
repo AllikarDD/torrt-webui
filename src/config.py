@@ -10,6 +10,8 @@ def configure_app(app):
         SECRET_KEY=os.environ.get('TORRTWEBUI_SECRET_KEY', 'your-secret-key-here-change-in-production'),
         LOG_FILE=os.environ.get('TORRTWEBUI_LOG_FILE', '/var/log/torrtwebui/log.txt'),
         LOG_LEVEL=os.environ.get('TORRTWEBUI_LOG_LEVEL', 'DEBUG').upper(),
+        PREFERRED_URL_SCHEME='https',
+        SESSION_COOKIE_SECURE=True,
     )
 
     # Set up logging

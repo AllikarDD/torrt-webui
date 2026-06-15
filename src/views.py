@@ -118,8 +118,8 @@ def logs():
 
 
 def favicon():
-    from flask import send_from_directory
-    return send_from_directory('static', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    from flask import send_from_directory, current_app
+    return send_from_directory(current_app.static_folder, 'favicon.ico', mimetype='image/x-icon')
 
 
 def register_routes(app):
