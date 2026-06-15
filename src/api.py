@@ -183,13 +183,13 @@ def api_configure_rpc():
         return _json_error('RPC settings are required')
 
     result = run_torrt_command(['configure_rpc', rpc_alias] + settings)
-    if not result['success']:
-        return _json_error(result['error'], output=result.get('output'))
+    if not result['success'] or 'ERROR:' in result.get('output', ''):
+        return _json_error(result.get('error') or 'RPC configuration failed', output=result.get('output'))
 
     if action == 'add':
         enable_result = run_torrt_command(['enable_rpc', rpc_alias])
-        if not enable_result['success']:
-            return _json_error(enable_result['error'], output=enable_result.get('output'))
+        if not enable_result['success'] or 'ERROR:' in enable_result.get('output', ''):
+            return _json_error(enable_result.get('error') or 'RPC enabling failed', output=enable_result.get('output'))
         return _json_success(message=f'RPC client "{rpc_alias}" configured and enabled', output=enable_result.get('output'))
 
     return _json_success(message=f'RPC client "{rpc_alias}" configured successfully', output=result.get('output'))
@@ -209,9 +209,10 @@ def api_configure_tracker():
         return _json_error('Tracker settings are required')
 
     result = run_torrt_command(['configure_tracker', tracker_alias] + settings)
-    if result['success']:
-        return _json_success(message=f'Tracker "{tracker_alias}" configured successfully', output=result['output'])
-    return _json_error(result['error'], output=result.get('output'))
+    if not result['success'] or 'ERROR:' in result.get('output', ''):
+        return _json_error(result.get('error') or f'Tracker "{tracker_alias}" configuration failed', output=result.get('output'))
+
+    return _json_success(message=f'Tracker "{tracker_alias}" configured successfully', output=result.get('output'))
 
 
 def api_test_tracker(alias):

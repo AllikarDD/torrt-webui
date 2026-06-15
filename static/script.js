@@ -1,6 +1,8 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     bindIndexEvents();
     loadTorrents();
+    initRpcPage();
+    initTrackersPage();
 });
 
 function bindIndexEvents() {
@@ -71,6 +73,9 @@ function clearMessages() {
 }
 
 async function loadTorrents() {
+    const container = document.getElementById('torrents-container');
+    if (!container) return;
+
     const result = await fetchJson('/api/torrents');
     if (!result.success) {
         showMessage(result.error || 'Unable to load torrents', 'danger');
@@ -115,6 +120,260 @@ function escapeHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+async function loadRpcClients() {
+    const container = document.getElementById('rpc-list-container');
+    if (!container) return;
+
+    clearMessages();
+    container.innerHTML = '<p class="text-muted mb-0">Loading RPC clients...</p>';
+
+    const result = await fetchJson('/api/rpc');
+    if (!result.success) {
+        container.innerHTML = `<p class="text-danger">${escapeHtml(result.error || 'Unable to load RPC clients')}</p>`;
+        showMessage(result.error || 'Unable to load RPC clients', 'danger');
+        return;
+    }
+
+    renderRpcClients(result.data || []);
+}
+
+function renderRpcClients(rpcList) {
+    const container = document.getElementById('rpc-list-container');
+    if (!container) return;
+
+    if (!rpcList || rpcList.length === 0) {
+        container.innerHTML = '<p class="text-muted mb-0">No RPC clients configured.</p>';
+        return;
+    }
+
+    let html = '<div class="table-responsive"><table class="table table-striped">';
+    html += '<thead><tr><th>Alias</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+
+    rpcList.forEach(rpc => {
+        const alias = escapeHtml(rpc.alias);
+        const status = escapeHtml(rpc.status || 'unknown');
+        const isEnabled = rpc.status && rpc.status.toLowerCase() === 'enabled';
+        html += `
+            <tr>
+                <td><strong>${alias}</strong></td>
+                <td><strong>${status}</strong></td>
+                <td>
+                    <button class="btn btn-sm btn-primary me-1" type="button" onclick='showRpcEditForm(${JSON.stringify(rpc.alias)})'>Configure</button>
+                    ${isEnabled
+                        ? `<button class="btn btn-sm btn-warning" type="button" onclick='disableRpc(${JSON.stringify(rpc.alias)})'>Disable</button>`
+                        : `<button class="btn btn-sm btn-success" type="button" onclick='enableRpc(${JSON.stringify(rpc.alias)})'>Enable</button>`}
+                </td>
+            </tr>
+        `;
+    });
+    html += '</tbody></table></div>';
+
+    container.innerHTML = html;
+}
+
+async function enableRpc(alias) {
+    if (!confirm(`Enable RPC client "${alias}"?`)) return;
+    clearMessages();
+
+    const result = await fetchJson(`/api/enable_rpc/${encodeURIComponent(alias)}`, {
+        method: 'POST',
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'RPC enabled successfully');
+        loadRpcClients();
+    } else {
+        showMessage(result.error || 'Failed to enable RPC', 'danger');
+    }
+}
+
+async function disableRpc(alias) {
+    if (!confirm(`Disable RPC client "${alias}"?`)) return;
+    clearMessages();
+
+    const result = await fetchJson(`/api/disable_rpc/${encodeURIComponent(alias)}`, {
+        method: 'POST',
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'RPC disabled successfully');
+        loadRpcClients();
+    } else {
+        showMessage(result.error || 'Failed to disable RPC', 'danger');
+    }
+}
+
+function showRpcEditForm(alias) {
+    const editForm = document.getElementById('rpc-edit-form');
+    const aliasInput = document.getElementById('rpc_edit_alias');
+    if (!editForm || !aliasInput) return;
+
+    aliasInput.value = alias;
+    document.getElementById('rpc_edit_url').value = '';
+    document.getElementById('rpc_edit_host').value = '';
+    document.getElementById('rpc_edit_port').value = '';
+    document.getElementById('rpc_edit_username').value = '';
+    document.getElementById('rpc_edit_password').value = '';
+    editForm.style.display = 'block';
+    editForm.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideRpcEditForm() {
+    const editForm = document.getElementById('rpc-edit-form');
+    if (editForm) {
+        editForm.style.display = 'none';
+    }
+}
+
+async function submitRpcConfiguration(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const payload = {
+        action: 'configure',
+        rpc_alias: document.getElementById('rpc_edit_alias').value,
+        url: document.getElementById('rpc_edit_url').value,
+        host: document.getElementById('rpc_edit_host').value,
+        port: document.getElementById('rpc_edit_port').value,
+        username: document.getElementById('rpc_edit_username').value,
+        password: document.getElementById('rpc_edit_password').value,
+    };
+
+    const result = await fetchJson('/api/configure_rpc', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'RPC client configured successfully');
+        hideRpcEditForm();
+        loadRpcClients();
+    } else {
+        showMessage(result.error || 'Failed to configure RPC client', 'danger');
+    }
+}
+
+function initRpcPage() {
+    const page = document.getElementById('rpc-page');
+    if (!page) return;
+
+    const form = document.getElementById('configure-rpc-form');
+    if (form) {
+        form.addEventListener('submit', submitRpcConfiguration);
+    }
+
+    loadRpcClients();
+}
+
+async function loadTrackers() {
+    const container = document.getElementById('tracker-list-container');
+    if (!container) return;
+
+    clearMessages();
+    container.innerHTML = '<p class="text-muted mb-0">Loading trackers...</p>';
+
+    const result = await fetchJson('/api/trackers');
+    if (!result.success) {
+        container.innerHTML = `<p class="text-danger">${escapeHtml(result.error || 'Unable to load trackers')}</p>`;
+        showMessage(result.error || 'Unable to load trackers', 'danger');
+        return;
+    }
+
+    renderTrackers(result.data || []);
+}
+
+function renderTrackers(trackers) {
+    const container = document.getElementById('tracker-list-container');
+    if (!container) return;
+
+    if (!trackers || trackers.length === 0) {
+        container.innerHTML = '<p class="text-muted mb-0">No trackers found. Trackers are defined in torrt configuration.</p>';
+        return;
+    }
+
+    let html = '<div class="table-responsive"><table class="table table-striped">';
+    html += '<thead><tr><th>Tracker Alias</th><th>Actions</th></tr></thead><tbody>';
+
+    trackers.forEach(tracker => {
+        const alias = escapeHtml(tracker.alias);
+        html += `
+            <tr>
+                <td><strong>${alias}</strong></td>
+                <td>
+                    <button class="btn btn-sm btn-primary" type="button" onclick='showTrackerEditForm(${JSON.stringify(tracker.alias)})'>Configure</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function showTrackerEditForm(alias) {
+    const editForm = document.getElementById('tracker-edit-form');
+    const aliasInput = document.getElementById('tracker_edit_alias');
+    if (!editForm || !aliasInput) return;
+
+    aliasInput.value = alias;
+    document.getElementById('tracker_edit_username').value = '';
+    document.getElementById('tracker_edit_password').value = '';
+    editForm.style.display = 'block';
+    editForm.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideTrackerEditForm() {
+    const editForm = document.getElementById('tracker-edit-form');
+    if (editForm) {
+        editForm.style.display = 'none';
+    }
+}
+
+async function submitTrackerConfiguration(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const payload = {
+        tracker_alias: document.getElementById('tracker_edit_alias').value,
+        username: document.getElementById('tracker_edit_username').value,
+        password: document.getElementById('tracker_edit_password').value,
+    };
+
+    const result = await fetchJson('/api/configure_tracker', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+        const output = result.output || result.message;
+        if (output && /ERROR:/i.test(output)) {
+            showMessage(output, 'danger');
+        } else if (output && /WARNING:/i.test(output)) {
+            showMessage(output, 'warning');
+        } else {
+            showMessage(result.message || 'Tracker configured successfully');
+        }
+        hideTrackerEditForm();
+        loadTrackers();
+    } else {
+        showMessage(result.error || result.output || 'Failed to configure tracker', 'danger');
+    }
+}
+
+function initTrackersPage() {
+    const page = document.getElementById('trackers-page');
+    if (!page) return;
+
+    const form = document.getElementById('configure-tracker-form');
+    if (form) {
+        form.addEventListener('submit', submitTrackerConfiguration);
+    }
+
+    loadTrackers();
 }
 
 async function handleAddTorrent(event) {

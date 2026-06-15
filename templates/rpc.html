@@ -3,115 +3,53 @@
 {% block title %}RPC Clients{% endblock %}
 
 {% block content %}
-<h2>RPC Clients Management</h2>
-<a href="/" class="btn btn-secondary mb-3">Back to Home</a>
+<div id="rpc-page">
+    <h2>RPC Clients Management</h2>
+    <a href="/" class="btn btn-secondary mb-3">Back to Home</a>
 
-<!-- Display existing RPC clients -->
+    <div id="page-messages"></div>
+
 <div class="card mb-4">
     <div class="card-header">
         <h5 class="mb-0">Available RPC Clients</h5>
     </div>
-    <div class="card-body">
-        {% if rpc_list %}
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                <tr>
-                    <th>Alias</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for rpc in rpc_list %}
-                <tr>
-                    <td><strong>{{ rpc.alias }}</strong></td>
-                    <td><strong>{{ rpc.status }}</strong></td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="showEditForm('{{ rpc.alias }}')">Configure</button>
-                        <button class="btn btn-sm btn-warning" onclick="disableRPC('{{ rpc.alias }}')">Disable</button>
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <p>No RPC clients configured.</p>
-        {% endif %}
+    <div class="card-body" id="rpc-list-container">
+        <p class="text-muted mb-0">Loading RPC clients...</p>
     </div>
 </div>
 
-
-<!-- Configure existing RPC form (hidden, shown when Edit clicked) -->
-<div id="editForm" class="card mb-4" style="display: none;">
+<div id="rpc-edit-form" class="card mb-4" style="display: none;">
     <div class="card-header bg-info text-white">
         <h5 class="mb-0">⚙️ Configure RPC Client</h5>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ url_for('configure_rpc') }}" id="configureForm">
+        <form id="configure-rpc-form">
             <input type="hidden" name="action" value="configure">
-            <input type="hidden" name="rpc_alias" id="edit_alias">
+            <input type="hidden" name="rpc_alias" id="rpc_edit_alias">
             <div class="mb-3">
-                <label class="form-label">Username</label>
-                <input type="text" name="username" id="edit_username" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input type="password" name="password" id="edit_password" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Port</label>
-                <input type="text" name="port" id="edit_port" class="form-control">
+                <label class="form-label">URL</label>
+                <input type="text" name="url" id="rpc_edit_url" class="form-control" placeholder="RPC URL">
             </div>
             <div class="mb-3">
                 <label class="form-label">Host</label>
-                <input type="text" name="host" id="edit_host" class="form-control">
+                <input type="text" name="host" id="rpc_edit_host" class="form-control" placeholder="RPC host">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Port</label>
+                <input type="text" name="port" id="rpc_edit_port" class="form-control" placeholder="RPC port">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" name="username" id="rpc_edit_username" class="form-control" placeholder="RPC username">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" id="rpc_edit_password" class="form-control" placeholder="RPC password">
             </div>
             <button type="submit" class="btn btn-info">Update Configuration</button>
-            <button type="button" class="btn btn-secondary" onclick="hideEditForm()">Cancel</button>
+            <button type="button" class="btn btn-secondary" onclick="hideRpcEditForm()">Cancel</button>
         </form>
     </div>
 </div>
-
-<script>
-    function showEditForm(alias) {
-        document.getElementById('edit_alias').value = alias;
-        document.getElementById('editForm').style.display = 'block';
-        // Scroll to form
-        document.getElementById('editForm').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function hideEditForm() {
-        document.getElementById('editForm').style.display = 'none';
-    }
-
-    function enableRPC(alias) {
-        if (confirm(`Enable RPC client "${alias}"?`)) {
-            fetch(`/enable_rpc/${alias}`, { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            });
-        }
-    }
-
-    function disableRPC(alias) {
-        if (confirm(`Disable RPC client "${alias}"?`)) {
-            fetch(`/disable_rpc/${alias}`, { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            });
-        }
-    }
-</script>
+</div>
 {% endblock %}
