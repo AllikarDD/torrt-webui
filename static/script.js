@@ -1,354 +1,237 @@
-// static/script.js
-
-// Загрузка данных при старте
-document.addEventListener('DOMContentLoaded', function() {
-    loadTopics();
-    loadHistory();
-    checkQBittorrentStatus();
-
-    // Обработчик формы добавления
-    document.getElementById('add-topic-form').addEventListener('submit', addTopic);
-
-    // Обработчик кнопки проверки всех
-    document.getElementById('check-all-btn').addEventListener('click', checkAllTopics);
-
-    // Модальное окно
-    setupModal();
+﻿document.addEventListener('DOMContentLoaded', () => {
+    bindIndexEvents();
+    loadTorrents();
 });
 
-// Загрузка топиков
-async function loadTopics() {
-    try {
-        const response = await fetch('/api/topics');
-        const topics = await response.json();
-        renderTopics(topics);
-    } catch (error) {
-        console.error('Ошибка загрузки топиков:', error);
-        showError('Не удалось загрузить список топиков');
+function bindIndexEvents() {
+    const addForm = document.getElementById('add-torrent-form');
+    if (addForm) {
+        addForm.addEventListener('submit', handleAddTorrent);
+    }
+
+    const removeForm = document.getElementById('remove-torrent-form');
+    if (removeForm) {
+        removeForm.addEventListener('submit', handleRemoveTorrent);
+    }
+
+    const registerForm = document.getElementById('register-torrent-form');
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegisterTorrent);
+    }
+
+    const unregisterForm = document.getElementById('unregister-torrent-form');
+    if (unregisterForm) {
+        unregisterForm.addEventListener('submit', handleUnregisterTorrent);
+    }
+
+    const walkButton = document.getElementById('walk-button');
+    if (walkButton) {
+        walkButton.addEventListener('click', handleWalk);
+    }
+
+    const refreshButton = document.getElementById('refresh-torrents');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', loadTorrents);
     }
 }
 
-// Загрузка истории
-async function loadHistory() {
-    try {
-        const response = await fetch('/api/history?limit=50');
-        const history = await response.json();
-        renderHistory(history);
-    } catch (error) {
-        console.error('Ошибка загрузки истории:', error);
+async function fetchJson(path, options = {}) {
+    const response = await fetch(path, options);
+    const contentType = response.headers.get('content-type') || '';
+    let payload = {success: false, error: 'Invalid server response'};
+
+    if (contentType.includes('application/json')) {
+        payload = await response.json();
     }
+
+    if (!response.ok) {
+        payload.success = false;
+        payload.error = payload.error || `HTTP ${response.status}`;
+    }
+
+    return payload;
 }
 
-// Проверка статуса qBittorrent
-async function checkQBittorrentStatus() {
-    try {
-        const response = await fetch('/api/settings');
-        const settings = await response.json();
-
-        const statusEl = document.getElementById('qb-status');
-        if (settings.qb_connected) {
-            statusEl.className = 'status online';
-            statusEl.innerHTML = '⚡ qBittorrent: Подключено';
-        } else {
-            statusEl.className = 'status offline';
-            statusEl.innerHTML = '⚡ qBittorrent: Отключено';
-        }
-    } catch (error) {
-        console.error('Ошибка проверки статуса:', error);
-    }
-}
-
-// Добавление топика
-async function addTopic(event) {
-    event.preventDefault();
-
-    const formData = {
-        topic_id: document.getElementById('topic_id').value,
-        save_path: document.getElementById('save_path').value,
-        category: document.getElementById('category').value
-    };
-
-    const submitBtn = event.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '⏳ Добавление...';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetch('/api/topics', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            // Очищаем форму
-            document.getElementById('topic_id').value = '';
-            document.getElementById('save_path').value = '';
-            document.getElementById('category').value = '';
-
-            // Обновляем списки
-            loadTopics();
-            loadHistory();
-
-            showMessage('Топик успешно добавлен', 'success');
-        } else {
-            showError(result.error || 'Ошибка при добавлении');
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-        showError('Ошибка при добавлении топика');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
-}
-
-// Удаление топика
-async function deleteTopic(topicId) {
-    if (!confirm('Вы уверены, что хотите удалить этот топик?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/topics/${topicId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            loadTopics();
-            loadHistory();
-            showMessage('Топик удален', 'success');
-        } else {
-            showError('Ошибка при удалении');
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-        showError('Ошибка при удалении топика');
-    }
-}
-
-// Обновление топика
-async function updateTopic(topicId) {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳...';
-    btn.disabled = true;
-
-    try {
-        const response = await fetch(`/api/topics/${topicId}/update`, {
-            method: 'POST'
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            loadTopics();
-            loadHistory();
-            showMessage('Топик обновлен', 'success');
-        } else {
-            showError('Ошибка при обновлении');
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-        showError('Ошибка при обновлении топика');
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-
-// Проверка всех топиков
-async function checkAllTopics() {
-    const btn = document.getElementById('check-all-btn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Проверка...';
-    btn.disabled = true;
-
-    try {
-        const response = await fetch('/api/check-all', {
-            method: 'POST'
-        });
-
-        const result = await response.json();
-
-        // Показываем результаты
-        const updated = result.results.filter(r => r.status === 'updated').length;
-        const unchanged = result.results.filter(r => r.status === 'unchanged').length;
-        const failed = result.results.filter(r => r.status === 'failed').length;
-
-        showMessage(
-            `Проверка завершена: обновлено ${updated}, без изменений ${unchanged}, ошибок ${failed}`,
-            updated > 0 ? 'success' : 'info'
-        );
-
-        // Обновляем списки
-        loadTopics();
-        loadHistory();
-    } catch (error) {
-        console.error('Ошибка:', error);
-        showError('Ошибка при проверке');
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-
-// Показать детали топика
-async function showTopicDetails(topicId) {
-    try {
-        const response = await fetch(`/api/topics/${topicId}/update`, {
-            method: 'POST'
-        });
-
-        const result = await response.json();
-
-        if (result.topic) {
-            const modal = document.getElementById('topic-modal');
-            const modalContent = document.getElementById('modal-content');
-
-            let filesHtml = '';
-            if (result.topic.files) {
-                filesHtml = '<h3>Файлы:</h3><ul>';
-                result.topic.files.forEach(file => {
-                    const size = (file.size / 1024 / 1024).toFixed(2);
-                    filesHtml += `<li>${file.path} (${size} MB)</li>`;
-                });
-                filesHtml += '</ul>';
-            }
-
-            modalContent.innerHTML = `
-                <h2>${result.topic.title}</h2>
-                <p><strong>ID:</strong> ${result.topic.topic_id}</p>
-                <p><strong>Хэш:</strong> <code>${result.topic.hash}</code></p>
-                <p><strong>Файлов:</strong> ${result.topic.file_count}</p>
-                ${filesHtml}
-            `;
-
-            modal.style.display = 'block';
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-    }
-}
-
-// Отрисовка топиков
-function renderTopics(topics) {
-    const container = document.getElementById('topics-container');
-
-    if (topics.length === 0) {
-        container.innerHTML = '<div class="loading">Нет отслеживаемых топиков</div>';
-        return;
-    }
-
-    let html = '<table class="topics-table">';
-    html += `
-        <thead>
-            <tr>
-                <th>Название</th>
-                <th>ID</th>
-                <th>Путь сохранения</th>
-                <th>Последнее обновление</th>
-                <th>Последняя проверка</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
+function showMessage(message, category = 'success') {
+    const container = document.getElementById('page-messages');
+    if (!container) return;
+    container.innerHTML = `
+        <div class="alert alert-${category} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     `;
-
-    topics.forEach(topic => {
-        const lastUpdate = topic.last_update ? new Date(topic.last_update).toLocaleString() : 'никогда';
-        const lastCheck = topic.last_check ? new Date(topic.last_check).toLocaleString() : 'никогда';
-
-        html += `
-            <tr>
-                <td class="topic-title">${topic.title}</td>
-                <td class="topic-id">${topic.topic_id}</td>
-                <td class="topic-path" title="${topic.save_path}">${topic.save_path}</td>
-                <td class="topic-date">${lastUpdate}</td>
-                <td class="topic-date">${lastCheck}</td>
-                <td class="topic-actions">
-                    <button class="btn btn-small btn-primary" onclick="updateTopic(${topic.topic_id})">
-                        🔄
-                    </button>
-                    <button class="btn btn-small btn-warning" onclick="showTopicDetails(${topic.topic_id})">
-                        📋
-                    </button>
-                    <button class="btn btn-small btn-danger" onclick="deleteTopic(${topic.topic_id})">
-                        🗑️
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
 }
 
-// Отрисовка истории
-function renderHistory(history) {
-    const container = document.getElementById('history-container');
+function clearMessages() {
+    const container = document.getElementById('page-messages');
+    if (container) {
+        container.innerHTML = '';
+    }
+}
 
-    if (history.length === 0) {
-        container.innerHTML = '<div class="loading">История пуста</div>';
+async function loadTorrents() {
+    const result = await fetchJson('/api/torrents');
+    if (!result.success) {
+        showMessage(result.error || 'Unable to load torrents', 'danger');
+        return;
+    }
+    renderTorrents(result.data || []);
+}
+
+function renderTorrents(torrents) {
+    const container = document.getElementById('torrents-container');
+    const count = document.getElementById('torrent-count');
+    if (!container || !count) return;
+
+    if (!torrents || torrents.length === 0) {
+        container.innerHTML = '<p class="text-muted">No torrents registered. Add one below!</p>';
+        count.textContent = '0';
         return;
     }
 
-    let html = '';
+    let html = '<div class="table-responsive"><table class="table table-sm table-striped">';
+    html += '<thead><tr><th>Hash</th><th>Name</th><th>Tracker</th></tr></thead><tbody>';
 
-    history.forEach(item => {
-        const time = new Date(item.created_at).toLocaleString();
-        let actionClass = '';
-
-        switch(item.action) {
-            case 'add': actionClass = 'add'; break;
-            case 'update': actionClass = 'update'; break;
-            case 'delete': actionClass = 'delete'; break;
-            case 'error': actionClass = 'error'; break;
-        }
-
+    torrents.forEach(torrent => {
         html += `
-            <div class="history-item">
-                <span class="history-time">${time}</span>
-                <span class="history-action ${actionClass}">${item.action}</span>
-                <span class="history-details">
-                    <strong>${item.title}</strong> — ${item.details}
-                </span>
-            </div>
+            <tr>
+                <td class="torrent-hash">${escapeHtml(torrent.hash)}</td>
+                <td>${escapeHtml(torrent.name || 'N/A')}</td>
+                <td>${escapeHtml(torrent.tracker || 'N/A')}</td>
+            </tr>
         `;
     });
+    html += '</tbody></table></div>';
 
     container.innerHTML = html;
+    count.textContent = torrents.length.toString();
 }
 
-// Настройка модального окна
-function setupModal() {
-    const modal = document.getElementById('topic-modal');
-    const closeBtn = document.querySelector('.close');
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 
-    closeBtn.onclick = function() {
-        modal.style.display = 'none';
+async function handleAddTorrent(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const payload = {
+        url: document.getElementById('add-url').value,
+        download_path: document.getElementById('add-download-path').value,
+        content_layout: document.getElementById('add-content-layout').value,
     };
 
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = 'none';
+    const result = await fetchJson('/api/add_torrent', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'Torrent added successfully');
+        document.getElementById('add-torrent-form').reset();
+        loadTorrents();
+    } else {
+        showMessage(result.error || 'Failed to add torrent', 'danger');
+    }
+}
+
+async function handleRemoveTorrent(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const payload = {
+        torrent_hash: document.getElementById('remove-torrent-hash').value,
+    };
+
+    const result = await fetchJson('/api/remove_torrent', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'Torrent removed successfully');
+        document.getElementById('remove-torrent-form').reset();
+        loadTorrents();
+    } else {
+        showMessage(result.error || 'Failed to remove torrent', 'danger');
+    }
+}
+
+async function handleRegisterTorrent(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const payload = {
+        torrent_hash: document.getElementById('register-torrent-hash').value,
+    };
+
+    const result = await fetchJson('/api/register_torrent', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'Torrent registered successfully');
+        document.getElementById('register-torrent-form').reset();
+        loadTorrents();
+    } else {
+        showMessage(result.error || 'Failed to register torrent', 'danger');
+    }
+}
+
+async function handleUnregisterTorrent(event) {
+    event.preventDefault();
+    clearMessages();
+
+    const payload = {
+        torrent_hash: document.getElementById('unregister-torrent-hash').value,
+    };
+
+    const result = await fetchJson('/api/unregister_torrent', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'Torrent unregistered successfully');
+        document.getElementById('unregister-torrent-form').reset();
+        loadTorrents();
+    } else {
+        showMessage(result.error || 'Failed to unregister torrent', 'danger');
+    }
+}
+
+async function handleWalk() {
+    clearMessages();
+    const walkResult = document.getElementById('walk-result');
+    if (walkResult) {
+        walkResult.innerHTML = '<div class="text-muted">Running walk...</div>';
+    }
+
+    const result = await fetchJson('/api/walk', {
+        method: 'POST',
+    });
+
+    if (result.success) {
+        showMessage(result.message || 'Walk completed successfully');
+        if (walkResult) {
+            walkResult.innerHTML = `<div class="alert alert-success">${escapeHtml(result.output || result.message || '')}</div>`;
         }
-    };
-}
-
-// Утилиты для сообщений
-function showMessage(message, type = 'info') {
-    // Можно добавить красивые тосты позже
-    console.log(`[${type}] ${message}`);
-    alert(message);
-}
-
-function showError(message) {
-    console.error(message);
-    alert('Ошибка: ' + message);
+        loadTorrents();
+    } else {
+        showMessage(result.error || 'Failed to run walk', 'danger');
+        if (walkResult) {
+            walkResult.innerHTML = `<div class="alert alert-danger">${escapeHtml(result.output || result.error || '')}</div>`;
+        }
+    }
 }

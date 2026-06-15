@@ -1,10 +1,12 @@
-import os
+﻿import os
 import re
 import subprocess
 import logging
 import shutil
+from flask import current_app
 
 logger = logging.getLogger(__name__)
+
 
 def get_current_walk_interval():
     """Try to get current walk interval from torrt config."""
@@ -19,8 +21,6 @@ def get_current_walk_interval():
         logger.debug('Could not read walk interval config from %s', config_path)
     return None
 
-
-from flask import current_app
 
 def run_torrt_command(cmd_args):
     """Execute torrt command and return output."""
@@ -83,7 +83,7 @@ def parse_torrents_list(output):
         if line.startswith('INFO:'):
             line = line[5:].strip()
         if not line:
-                continue
+            continue
 
         parts = [part.strip() for part in line.split('\t') if part.strip()]
 
@@ -119,12 +119,11 @@ def parse_tracker_lines(output):
     return trackers
 
 
-def build_settings(fields):
-    """Build settings list from request form fields."""
-    from flask import request
+def build_settings(data, fields):
+    """Build settings list from a request payload or form-like data."""
     settings = []
     for key, field_name in fields:
-        value = request.form.get(field_name)
+        value = data.get(field_name)
         if value:
             settings.append(f'{key}={value}')
     return settings

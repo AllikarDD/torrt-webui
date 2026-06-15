@@ -190,3 +190,31 @@ docker stop torrt-webui; docker rm torrt-webui; docker build -t torrt-webui .; d
 
  cat /var/log/torrtwebui/log.txt 
 ```
+docker build -t torrt-webui:1.0.5 .
+docker build -t torrt-webui:latest .
+
+docker push allikardd/torrt-webui:1.0.5
+docker push allikardd/torrt-webui:latest
+
+
+Build and Publish to Docker Hub
+Login to Docker Hub:
+
+```bash
+docker login
+```
+# Build the image:
+Build with your Docker Hub username
+
+```bash
+docker build -t allikardd/torrt-webui:latest .
+docker build -t allikardd/torrt-webui:1.0.5 .
+```
+# Push to Docker Hub:
+
+Push all tags
+
+```bash
+docker push allikardd/torrt-webui:latest
+docker push allikardd/torrt-webui:1.0.5
+```
